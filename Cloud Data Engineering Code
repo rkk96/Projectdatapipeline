@@ -1,0 +1,150 @@
+###CODE
+
+package pack
+
+import org.apache.spark._
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.IntegerType
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql
+import org.apache.spark.sql.functions.upper
+import org.apache.spark.sql.catalyst.expressions.Upper
+import org.apache.spark.sql.expressions.Window
+import scala.io.Source
+import scala.io._
+import org.apache.spark.sql.streaming.DataStreamReader
+import net.snowflake
+
+
+object obj {
+
+
+  def main(args: Array[String]): Unit = {
+
+    System.setProperty("hadoop.home.dir", "E:\\hadoop")
+
+
+
+    val conf = new SparkConf().setAppName("Local").setMaster("local[*]").set("spark.driver.host", "localhost")
+      .set("spark.driver.allowMultipleContexts", "true").set("spark.executor.extraJavaOptions","-Dfile.encoding=UTF-8")
+      .set("spark.driver.extraJavaOptions","-Dfile.encoding=UTF-8")
+    val sc = new SparkContext(conf)
+
+    sc.setLogLevel("ERROR")
+
+    val spark = new SparkSession.Builder().config(conf).getOrCreate()
+
+    import spark.implicits._
+
+
+    val firstyearsales = spark.read.format("net.snowflake.spark.snowflake").option("sfURL", "https://efvwdqe-wj90521.snowflakecomputing.com")
+      .option("sfAccount", "PJ12363").option("sfUser", "RKK666").option("sfPassword", "1+1Rahul").option("sfDatabase", "RKKDB")
+      .option("sfSchema", "RKKSCHEMA").option("sfRole", "ACCOUNTADMIN").option("sfWarehouse", "COMPUTE_WH").option("dbtable", "first").load()
+    firstyearsales.show()
+
+    firstyearsales.printSchema()
+
+    val aggdf = firstyearsales.groupBy("MAKER").agg(sum("TOTAL").cast(IntegerType).as("total year sales"))
+
+    aggdf.write.format("parquet").option("header", "true").option("multiline", "true").mode("overwrite").save("s3://projbuck2/total_sales_by_maker.parquet")
+
+
+    firstyearsales.write.format("parquet").option("header", "true").option("multiline", "true").mode("overwrite")
+      .save("s3://processedproj/firstyearsales.parquet")
+
+    val secondyearsales = Source.fromURL("https://mocki.io/v1/93e92677-daa3-4681-91be-8e2b44b85a6e").mkString
+
+    val rdd = sc.parallelize(List(secondyearsales))
+
+    val df = spark.read.option("multiline", "true").json(rdd).select("SN0", "MONTH", "YEAR", "Maker", "ELECTRIC(BOV)", "PETROL", "TOTAL")
+
+    df.show()
+
+    df.printSchema()
+
+    df.write.format("parquet").option("header", "true").option("multiline", "true").mode("overwrite").save("s3://processedproj/secondyearsales.parquet")
+
+    val thirdyearsales = Source.fromURL("https://mocki.io/v1/1f16b228-f5c5-41ae-ae84-2b1132ac3557").mkString
+
+
+    val rdd1 = sc.parallelize(List(thirdyearsales))
+
+    val df1 = spark.read.option("multiline", "true").json(rdd1).select("SN0", "MONTH", "YEAR", "Maker", "ELECTRIC(BOV)", "PETROL", "TOTAL")
+
+    df1.show()
+
+    df1.printSchema()
+
+    df1.write.format("parquet").option("header", "true").option("multiline", "true").mode("overwrite").save("s3://processedproj/thirdyearsales.parquet")
+
+    val fourthyearsales = Source.fromURL("https://mocki.io/v1/5c7667ea-eaa1-4406-bffa-a531d6e9e39c").mkString
+
+
+    val rdd2 = sc.parallelize(List(fourthyearsales))
+
+    val df2 = spark.read.option("multiline", "true").json(rdd2).select("SN0", "MONTH", "YEAR", "Maker", "ELECTRIC(BOV)", "PETROL", "TOTAL")
+
+    df2.show()
+
+    df2.printSchema()
+
+    df2.write.format("parquet").option("header", "true").option("multiline", "true").mode("overwrite").save("s3://processedproj/fourthyearsales.parquet")
+
+
+    val finalyearsales = spark.read.format("parquet").option("multiline", "true").option("header", "true").load("s3://salesdata11/sales2023.parquet")
+      .select("SN0", "MONTH", "YEAR", "Maker", "ELECTRIC(BOV)", "PETROL", "TOTAL")
+
+    finalyearsales.show()
+
+    finalyearsales.printSchema()
+
+    val aggdf1 = finalyearsales.groupBy("MAKER").agg(sum("TOTAL").cast(IntegerType).as("total year sales"))
+
+    aggdf1.write.format("parquet").option("header", "true").option("multiline", "true").mode("overwrite").save("s3://projbuck2/totalsalesbymaker4.parquet")
+
+
+    finalyearsales.write.format("parquet").option("header", "true").option("multiline", "true").mode("overwrite")
+      .save("s3://processedproj/finalyearsales.parquet")
+
+    val table1 = spark.read.format("parquet").option("multiline", "true").option("header", "true").load("s3://processedproj/firstyearsales.parquet")
+
+    table1.show()
+
+    val table2 = spark.read.format("parquet").option("multiline", "true").option("header", "true").load("s3://processedproj/secondyearsales.parquet")
+
+    table2.show()
+
+    val table3 = spark.read.format("parquet").option("multiline", "true").option("header", "true").load("s3://processedproj/thirdyearsales.parquet")
+
+    table3.show()
+
+    val table4 = spark.read.format("parquet").option("multiline", "true").option("header", "true").load("s3://processedproj/fourthyearsales.parquet")
+
+    table4.show()
+
+    val table5 = spark.read.format("parquet").option("multiline", "true").option("header", "true").load("s3://processedproj/finalyearsales.parquet")
+
+    table5.show()
+
+    val combinedDF = table1.union(table2).union(table3).union(table4).union(table5)
+
+    combinedDF.show()
+
+    combinedDF.write.format("parquet").option("header", "true").option("multiline", "true").mode("overwrite").save("s3://totalsales/totalsales.parquet")
+
+
+    combinedDF.coalesce(1).write.format("net.snowflake.spark.snowflake").option("sfURL", "https://efvwdqe-wj90521.snowflakecomputing.com")
+      .option("sfAccount", "PJ12363").option("sfUser", "RKK666").option("sfPassword", "1+1Rahul").option("sfDatabase", "RKKDB")
+      .option("sfSchema", "RKKSCHEMA").option("sfRole", "ACCOUNTADMIN").option("sfWarehouse", "COMPUTE_WH").option("dbtable", "totalsales")
+      .mode("overwrite").save()
+
+
+  }
+}
+
+
+
+
+
