@@ -1,0 +1,18 @@
+##Automation
+
+automation code for the above
+
+
+aws emr create-cluster \
+ --name "stepexecproj" \
+ --log-uri "s3://aws-logs-211125423717-ap-south-1/elasticmapreduce" \
+ --release-label "emr-6.15.0" \
+ --service-role "arn:aws:iam::211125423717:role/service-role/AmazonEMR-ServiceRole-20240430T084637" \
+ --auto-terminate \
+ --ec2-attributes '{"InstanceProfile":"AmazonEMR-InstanceProfile-20240430T084618","EmrManagedMasterSecurityGroup":"sg-030d337db95591ba0","EmrManagedSlaveSecurityGroup":"sg-01b0285ef393611c8","KeyName":"proj1key","SubnetId":"subnet-08778f5654e9d2492"}' \
+ --tags 'for-use-with-amazon-emr-managed-policies=true' \
+ --applications Name=Ganglia Name=Hadoop Name=Spark \
+ --instance-groups '[{"BidPrice":"0.202","InstanceCount":1,"InstanceGroupType":"MASTER","Name":"Primary","InstanceType":"m5.xlarge","EbsConfiguration":{"EbsBlockDeviceConfigs":[{"VolumeSpecification":{"VolumeType":"gp2","SizeInGB":32},"VolumesPerInstance":2}]}}]' \
+ --steps '[{"Name":"projcheck","ActionOnFailure":"CONTINUE","Jar":"command-runner.jar","Properties":"=","Args":["spark-submit","--deploy-mode","client","--master","yarn","--executor-cores","2","--executor-memory","2g","--num-executors","1","--packages","net.snowflake:spark-snowflake_2.12:2.12.0-spark_3.4","--class","pack.obj","s3://jarbuck/proj3maven1.jar"],"Type":"CUSTOM_JAR"}]' \
+ --scale-down-behavior "TERMINATE_AT_TASK_COMPLETION" \
+ --region "ap-south-1"
