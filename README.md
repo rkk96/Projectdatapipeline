@@ -1,5 +1,9 @@
 # Complete End to End Work on Motorcycle sales 
 
+# Procedure Followed
+![data](https://github.com/rkk96/Projectdatapipeline/assets/166745361/6755652e-2c1d-4257-bf90-fbb02ca04c4e)
+
+
 
 
 ## Problem Statement
